@@ -34,7 +34,8 @@ public:
   SemiAnalyticalModel(fhicl::ParameterSet VUVHits,
                       fhicl::ParameterSet VISHits,
                       bool doReflectedLight = false,
-                      bool includeAnodeReflections = false);
+                      bool includeAnodeReflections = false,
+                      bool useXeAbsorption = false);
 
   // direct / VUV light
   void detectedDirectVisibilities(std::vector<double>& DetectedVisibilities,
@@ -175,9 +176,7 @@ private:
   std::vector<int> fOpDetOrientation;
   std::vector<double> fOpDetLength;
   std::vector<double> fOpDetHeight;
-
-  const int fvuv_absorption_length;
-
+  
   // For VUV semi-analytic hits
   double fdelta_angulo_vuv;
   // flat PDs
@@ -219,6 +218,10 @@ private:
   std::vector<double> fvis_distances_x_dome;
   std::vector<double> fvis_distances_r_dome;
   std::vector<std::vector<std::vector<double>>> fvispars_dome;
+  
+  // absorption length
+  const bool fUseXeAbsorption;
+  int fvuv_absorption_length;
 };
 
 #endif

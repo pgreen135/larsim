@@ -25,7 +25,8 @@
 SemiAnalyticalModel::SemiAnalyticalModel(fhicl::ParameterSet VUVHits,
                                          fhicl::ParameterSet VISHits,
                                          bool doReflectedLight,
-                                         bool includeAnodeReflections)
+                                         bool includeAnodeReflections,
+                                         bool useXeAbsorption)
   : fVUVHitsParams(VUVHits)
   , fVISHitsParams(VISHits)
   , fISTPC{*(lar::providerFrom<geo::Geometry>())}
@@ -39,10 +40,10 @@ SemiAnalyticalModel::SemiAnalyticalModel(fhicl::ParameterSet VUVHits,
                   fActiveVolumes[0].CenterY(),
                   fActiveVolumes[0].CenterZ()}
   , nOpDets(fGeom.NOpDets())
-  , fvuv_absorption_length(VUVAbsorptionLength())
   , fDoReflectedLight(doReflectedLight)
   , fIncludeAnodeReflections(includeAnodeReflections)
-{
+  , fUseXeAbsorption(useXeAbsorption)
+  {
   // initialise parameters and geometry
   mf::LogInfo("SemiAnalyticalModel") << "Semi-analytical model initialized." << std::endl;
   Initialization();
@@ -177,6 +178,11 @@ void SemiAnalyticalModel::Initialization()
     fanode_plane.w = fActiveVolumes[0].SizeZ();
     fanode_plane_depth = fanode_centre[0];
   }
+  
+  // set absorption length
+  fvuv_absorption_length = VUVAbsorptionLength();
+  mf::LogInfo("SemiAnalyticalModel") << "Setting absorption length to: " << fvuv_absorption_length << std::endl;
+
 }
 
 int SemiAnalyticalModel::VUVAbsorptionLength() const
@@ -189,8 +195,9 @@ int SemiAnalyticalModel::VUVAbsorptionLength() const
     x_v.push_back(elem.first);
     y_v.push_back(elem.second);
   }
-  int vuv_absorption_length = std::round(interpolate(
-    x_v, y_v, 9.7, false)); // 9.7 eV: peak of VUV emission spectrum   // TO DO UNHARDCODE FOR XENON
+  int vuv_absorption_length;
+  if (fUseXeAbsorption) std::round(interpolate( x_v, y_v, 7.1, false)); // 7.1 eV: peak of Xe VUV emission spectrum
+  else vuv_absorption_length = std::round(interpolate( x_v, y_v, 9.7, false)); // 9.7 eV: peak of Ar VUV emission spectrum
   if (vuv_absorption_length <= 0) {
     throw cet::exception("SemiAnalyticalModel")
       << "Error: VUV Absorption Length is 0 or negative.\n";
@@ -270,8 +277,10 @@ double SemiAnalyticalModel::VUVVisibility(geo::Point_t const& ScintPoint,
   const size_t j = (theta / fdelta_angulo_vuv);
 
   // determine GH parameters, accounting for border effects
-  // radial distance from centre of detector (Y-Z)
-  double r = std::hypot(ScintPoint.Y() - fcathode_centre[1], ScintPoint.Z() - fcathode_centre[2]);
+  // radial distance from centre of detector (Y-Z) standard / (X-Z) laterals
+  double r = 0;
+  if (opDet.orientation == 1) r = std::hypot(ScintPoint.X() - fcathode_centre[0], ScintPoint.Z() - fcathode_centre[2]);
+  else r = std::hypot(ScintPoint.Y() - fcathode_centre[1], ScintPoint.Z() - fcathode_centre[2]);
 
   double pars_ini[4] = {0, 0, 0, 0};
   double s1 = 0;
