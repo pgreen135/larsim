@@ -196,7 +196,7 @@ int SemiAnalyticalModel::VUVAbsorptionLength() const
     y_v.push_back(elem.second);
   }
   int vuv_absorption_length;
-  if (fUseXeAbsorption) std::round(interpolate( x_v, y_v, 7.1, false)); // 7.1 eV: peak of Xe VUV emission spectrum
+  if (fUseXeAbsorption) vuv_absorption_length = std::round(interpolate( x_v, y_v, 7.1, false)); // 7.1 eV: peak of Xe VUV emission spectrum
   else vuv_absorption_length = std::round(interpolate( x_v, y_v, 9.7, false)); // 9.7 eV: peak of Ar VUV emission spectrum
   if (vuv_absorption_length <= 0) {
     throw cet::exception("SemiAnalyticalModel")
