@@ -654,7 +654,7 @@ double SemiAnalyticalModel::Rectangle_SolidAngle(const double a,
 
 double SemiAnalyticalModel::Rectangle_SolidAngle(Dims const& o,
                                                  geo::Vector_t const& v,
-                                                 double OpDetOrientation) const
+                                                 int OpDetOrientation) const
 {
   // v is the position of the track segment with respect to
   // the center position of the arapuca window
