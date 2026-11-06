@@ -155,7 +155,7 @@ namespace phot {
     if (fNTPC > 1 && fDriftDistance < 50)
       fDriftDistance = fGeom.TPC(geo::TPCID{0, 1}).DriftDistance();
 
-    // testing
+    // Testing Outputs - To remove
     std::cout << "SemiAnalyticalModel: Drift distance = " << fDriftDistance << std::endl;
     std::cout << "SemiAnalyticalModel: Active Volume boundaries from " << fActiveVolumes.size() << " volumes:" << std::endl;
     for (auto const& [iCryo, box] : ::ranges::views::enumerate(fActiveVolumes)) {
@@ -277,9 +277,13 @@ namespace phot {
 
     // determine GH parameters, accounting for border effects
     // radial distance from centre of detector (Y-Z standard / X-Z laterals)
-    // special case: VerticalBorderCorrectionMode use Y direction only
+    // special case: VerticalBorderCorrectionMode use non-beam axis (Y standard, X laterals)
     double r = 0;
-    if (fVerticalBorderCorrectionMode) { r = std::abs(ScintPoint.Y() - fcathode_centre[1]); }
+    if (fVerticalBorderCorrectionMode) {
+      if (opDet.orientation == 1) r = std::abs(ScintPoint.X() - fcathode_centre[0]);      // laterals [long], use X
+      else if (opDet.orientation == 2) r = std::abs(ScintPoint.Y() - fcathode_centre[1]); // laterals [short], use Y
+      else r = std::abs(ScintPoint.Y() - fcathode_centre[1]);                             // anode/cathode, use Y
+    }
     else {
       if (opDet.orientation == 2)
         r = std::hypot(ScintPoint.X() - fcathode_centre[0], ScintPoint.Y() - fcathode_centre[1]);
@@ -355,12 +359,12 @@ namespace phot {
     if (!std::isfinite(GH_correction) || GH_correction < 0 || GH_correction > 10) GH_correction = 0;
 
     // determine corrected visibility of photo-detector
-    return GH_correction * visibility_geo / cosine;
-    // temporary testing
-    //if (opDet.orientation != 0) return 0;   // keep only visibility for cathode/anode facing PDs
-    //if (opDet.orientation != 1) return 0;   // laterals, long
-    //if (opDet.orientation != 2) return 0;   // laterals, short
-    //return visibility_geo;
+    double visibility = GH_correction * visibility_geo / cosine;
+
+    // check sensible visibility values, catch occasional issues at large angles
+    if (!std::isfinite(visibility) || visibility < 0 || visibility > 1) visibility = 0;
+  
+    return visibility;
   }
 
   //......................................................................
